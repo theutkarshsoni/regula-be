@@ -10,11 +10,17 @@ import { pool, q } from './db';
   for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.sql')).sort()) {
     const done = await q('SELECT 1 FROM _migrations WHERE name=$1', [f]);
     if (done.rowCount) continue;
-    await q('BEGIN');
-    await q(fs.readFileSync(path.join(dir, f), 'utf8'));
-    await q('INSERT INTO _migrations(name) VALUES ($1)', [f]);
-    await q('COMMIT');
-    console.log('Applied', f);
+    try {
+      await q('BEGIN');
+      await q(fs.readFileSync(path.join(dir, f), 'utf8'));
+      await q('INSERT INTO _migrations (name) VALUES ($1)', [f]);
+      await q('COMMIT');
+      console.log('Applied', f);
+    } catch (err) {
+      await q('ROLLBACK');
+      console.error('Failed migration', f, err);
+      process.exit(1);
+    }
   }
   
   await pool.end();
