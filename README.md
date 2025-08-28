@@ -28,4 +28,15 @@ This mirrors real-world compliance monitoring similar to what regulators and ris
 6. Breach management & audit log  
 7. Validation, auth & polish  
 
+# 🚀 Lessons while Building
+
+## From PUT to PATCH: A Compliance Story
+
+- Started with `PUT` for rule updates → realized it forced full replacements and risked overwriting data.  
+- Switched to `PATCH` for partial updates → safer, more natural for toggling `active` or tweaking thresholds.  
+- Introduced **soft delete** (`active=false`) instead of hard deletes → preserves audit trail of past breaches.  
+- Added a **PostgreSQL trigger** to auto-update updated_at → ensures timestamp accuracy without relying on logic.
+- Future plan: log before/after diffs in audit table → gold for compliance reviews and incident tracing.  
+
+
 ---
