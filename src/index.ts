@@ -4,6 +4,7 @@ import cors from 'cors';
 
 import datasets from './routes/datasets';
 import positions from './routes/positions';
+import rules from './routes/rules';
 
 const app = express();
 
@@ -11,8 +12,9 @@ app.use(cors());
 
 app.use(express.json());
 
-app.use(datasets);
-app.use(positions);
+app.use('/datasets', datasets);
+app.use('/positions', positions);
+app.use('/rules', rules);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
