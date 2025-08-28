@@ -16,4 +16,8 @@ app.use(positions);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-app.listen(process.env.PORT || 4000, () => console.log('API is up'));
+if (import.meta.url === `file://${process.argv[1]}`) {
+  app.listen(process.env.PORT || 4000, () => console.log('API is up'));
+}
+
+export { app }; // required by vite-plugin-node
