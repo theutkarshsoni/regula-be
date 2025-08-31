@@ -12,7 +12,7 @@ const router = Router();
  * Form-data: file=<csv>
  */
 
-router.post('/positions/upload', upload.single('file'), async (req, res, next) => {
+router.post('/upload', upload.single('file'), async (req, res, next) => {
   try {
     const datasetId = parseInt(req.query.datasetId as string, 10);
     if (!datasetId) return res.status(400).json({ error: 'datasetId required' });
@@ -100,7 +100,7 @@ router.post('/positions/upload', upload.single('file'), async (req, res, next) =
  * GET /positions?datasetId=1&page=1&pageSize=20&issuer=...&asset_class=...
  */
 
-router.get('/positions', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const datasetId = parseInt(req.query.datasetId as string, 10);
     if (!datasetId) return res.status(400).json({ error: 'datasetId required' });
