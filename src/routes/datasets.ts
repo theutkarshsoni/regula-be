@@ -4,6 +4,21 @@ import { pquery } from '../db';
 const router = Router();
 
 /**
+ * GET /datasets
+ */
+
+router.get('/', async (_req, res, next) => {
+  try {
+    const dts = await pquery('SELECT * FROM datasets');
+    console.log('Fetched datasets:', dts.rows.length);
+    res.json(dts.rows);
+  } catch (e) {
+    console.error('Failed to get datasets', e);
+    next(e);
+  }
+});
+
+/**
  * POST /datasets
  */
 
