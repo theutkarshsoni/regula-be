@@ -5,6 +5,8 @@ import cors from 'cors';
 import datasets from './routes/datasets';
 import positions from './routes/positions';
 import rules from './routes/rules';
+import breaches from './routes/breaches';
+import audits from './routes/audits';
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.use(express.json());
 app.use('/datasets', datasets);
 app.use('/positions', positions);
 app.use('/rules', rules);
+app.use('/breaches', breaches);
+app.use('/audits', audits);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 

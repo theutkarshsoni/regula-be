@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS breaches(
   value NUMERIC NOT NULL, 
   threshold NUMERIC NOT NULL,
   severity TEXT NOT NULL CHECK (severity IN ('low','medium','high')),
-  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in-progress','in_progress','resolved')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_progress','resolved')),
   assignee TEXT, 
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), 
