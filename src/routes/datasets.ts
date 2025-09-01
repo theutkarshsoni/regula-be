@@ -1,0 +1,36 @@
+import { Router } from 'express';
+import { pquery } from '../db';
+
+const router = Router();
+
+/**
+ * GET /datasets
+ */
+
+router.get('/', async (_req, res, next) => {
+  try {
+    const dts = await pquery('SELECT * FROM datasets');
+    console.log('Fetched datasets:', dts.rows.length);
+    res.json(dts.rows);
+  } catch (e) {
+    console.error('Failed to get datasets', e);
+    next(e);
+  }
+});
+
+/**
+ * POST /datasets
+ */
+
+router.post('/', async (_req, res, next) => {
+  try {
+    const dts = await pquery('INSERT INTO datasets DEFAULT VALUES RETURNING id, created_at');
+    console.log('Created dataset', dts.rows[0]);
+    res.json(dts.rows[0]);
+  } catch (e) {
+    console.error('Failed to create dataset', e);
+    next(e);
+  }
+});
+
+export default router;
