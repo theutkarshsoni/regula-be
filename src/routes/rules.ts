@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pquery } from '../db';
 import { paging } from '../utils/pagination';
 import { RuleSchema } from '../utils/validation';
+import { runConcentration, runExposure, runLargeTrade  } from '../utils/ruleExecution';
 
 const router = Router();
 
@@ -110,5 +111,57 @@ router.patch('/:id', async (req, res, next) => {
     next(e);
   }
 });
+
+/**
+ * POST /rules/:id/run
+ * body: { datasetId: number }
+ */
+
+router.post('/:id/run', async (req, res, next) => {
+  try {
+    const ruleId = Number(req.params.id);
+    const datasetId = Number(req.body.datasetId);
+    if (!datasetId) return res.status(400).json({ error: 'datasetId required' });
+
+    const ruleRes = await pquery('SELECT * FROM rules WHERE id = $1', [ruleId]);
+    const rule = ruleRes.rows[0];
+    if (!rule) return res.status(404).json({ error: 'rule not found' });
+    if (!rule.active) return res.status(400).json({ error: 'rule is inactive' });
+
+    let runId:number = 0;
+
+    try {
+      const runRes = await pquery(
+        'INSERT INTO rule_runs (rule_id, dataset_id, status) VALUES ($1,$2,$3) RETURNING id',
+        [ruleId, datasetId, 'running']
+      );
+      runId = runRes.rows[0].id;
+      
+      let created = 0;
+      if (rule.type === 'concentration') {
+        created = await runConcentration(datasetId, Number(rule.threshold), runId);
+      } else if (rule.type === 'exposure') {
+        if (!rule.asset_class) return res.status(400).json({ error: 'asset_class required for exposure rule' });
+        created = await runExposure(datasetId, rule.asset_class, Number(rule.threshold), runId);
+      } else if (rule.type === 'large-trade') {
+        created = await runLargeTrade(datasetId, Number(rule.threshold), runId);
+      }
+
+      await pquery('UPDATE rule_runs SET status=$2, finished_at=now() WHERE id=$1', [runId, 'completed']);
+      console.log(`Rule ${ruleId} run completed, created breaches: ${created}`);
+      res.json({ ruleRunId: runId, createdBreaches: created });
+    } catch (err) {
+      if(runId) {
+        await pquery('UPDATE rule_runs SET status=$2, finished_at=now() WHERE id=$1', [runId, 'failed']);
+      }
+      console.error('Error running rule:', err);
+      next(err);
+    }
+  } catch (e) {
+    console.error('Failed to run rule', e);
+    next(e);
+  }
+});
+
 
 export default router;
