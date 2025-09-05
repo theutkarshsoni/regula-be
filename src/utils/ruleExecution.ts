@@ -1,5 +1,13 @@
 import { pool } from "../db";
 
+function addBreachIndexing(client: any, breachId: number, breach: any) {
+  return client.query(
+    `INSERT INTO search_outbox(target,row_id,op,payload)
+    VALUES($1,$2,'upsert',$3)`,
+    ['breach', breachId, JSON.stringify(breach)]
+  );
+}
+
 export async function runConcentration(datasetId: number, thresholdPct: number, ruleRunId: number) {
   const client = await pool.connect();
   try {
@@ -31,7 +39,10 @@ export async function runConcentration(datasetId: number, thresholdPct: number, 
     for (const row of res.rows as any[]) {
       const pct = Number(row.pct);
       const sev = pct > thresholdPct * 1.5 ? 'high' : pct > thresholdPct * 1.2 ? 'medium' : 'low';
-      await client.query(insertSql, [ruleRunId, datasetId, row.issuer, pct, thresholdPct, sev]);
+      const breachRes = await client.query(insertSql, [ruleRunId, datasetId, row.issuer, pct, thresholdPct, sev]);
+      if (breachRes.rows?.[0]) {
+        await addBreachIndexing(client, breachRes.rows[0].id, breachRes.rows[0]);
+      }
       count++;
     }
 
@@ -69,7 +80,10 @@ export async function runExposure(datasetId: number, assetClass: string, limitAb
     for (const row of res.rows as any[]) {
       const exposure = Number(row.exposure);
       const sev = exposure > limitAbs * 1.2 ? 'high' : exposure > limitAbs * 1.05 ? 'medium' : 'low';
-      await client.query(insertSql, [ruleRunId, datasetId, row.asset_class, exposure, limitAbs, sev]);
+      const breachRes = await client.query(insertSql, [ruleRunId, datasetId, row.asset_class, exposure, limitAbs, sev]);
+      if (breachRes.rows?.[0]) {
+        await addBreachIndexing(client, breachRes.rows[0].id, breachRes.rows[0]);
+      }
       count++;
     }
 
@@ -105,7 +119,10 @@ export async function runLargeTrade(datasetId: number, tradeLimit: number, ruleR
     for (const row of res.rows as any[]) {
       const v = Number(row.notional);
       const sev = v > tradeLimit * 1.2 ? 'high' : v > tradeLimit * 1.05 ? 'medium' : 'low';
-      await client.query(insertSql, [ruleRunId, datasetId, row.trade_id, v, tradeLimit, sev]);
+      const breachRes = await client.query(insertSql, [ruleRunId, datasetId, row.trade_id, v, tradeLimit, sev]);
+      if (breachRes.rows?.[0]) {
+        await addBreachIndexing(client, breachRes.rows[0].id, breachRes.rows[0]);
+      }
       count++;
     }
 
