@@ -74,11 +74,25 @@ router.patch('/:id', async (req, res, next) => {
     );
     const after = afterRes.rows[0];
 
-    await pquery(
+    const auditRes = await pquery(
       `INSERT INTO audit_log (entity, entity_id, action, actor, details)
       VALUES ($1,$2,$3,$4,$5)`,
       ['breach', id, 'update', 'system', JSON.stringify({ before, after })]
     );
+
+    await pquery(
+      `INSERT INTO search_outbox(target,row_id,op,payload)
+      VALUES($1,$2,'upsert',$3)`,
+      ['breach', after.id, JSON.stringify(after)]
+    );
+    
+    if(auditRes.rows?.[0]) {
+      await pquery(
+        `INSERT INTO search_outbox(target,row_id,op,payload)
+        VALUES($1,$2,'upsert',$3)`,
+        ['audit', auditRes.rows[0].id, JSON.stringify(auditRes.rows[0])]
+      );
+    }
 
     console.log(`Breach ${id} updated`);
     res.json(after);

@@ -27,6 +27,7 @@ This mirrors real-world compliance monitoring similar to what regulators and ris
 5. Rule execution (concentration, exposure, large trade)  
 6. Breach management & audit log  
 7. Validation, auth & polish  
+8. Search & Analytics (Elasticsearch integration)
 
 # 🚀 Design Decisions in Practice
 
@@ -45,5 +46,15 @@ This mirrors real-world compliance monitoring similar to what regulators and ris
 - Fixed it by marking runs as `"failed"` with a `finished_at` timestamp on error.  
 - This ensures the audit trail tells the truth: some rules passed, others failed, and both outcomes are visible.  
 - Future enhancement: add monitoring to auto-flag stale `"running"` runs and trigger retries.  
+
+## Scaling Search with Elasticsearch: Balancing Power and Pragmatism
+
+- Started with PostgreSQL full-text search for breaches and audit logs → simple and consistent.  
+- Realized compliance analysts often need **fuzzy search** (typos, synonyms) and **aggregations** (e.g., breaches by severity over time).  
+- Introduced an **Elasticsearch module**:  
+  - PostgreSQL remains the source of truth.  
+  - An **outbox table** ensures reliable sync of changes into Elasticsearch (eventual consistency).  
+  - Queries combine free-text, filters, and facets for richer exploration.  
+- Future plan: enable autocomplete and trend dashboards via Kibana, without bloating the core API.  
 
 ---
