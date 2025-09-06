@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { requireRole } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
 import { pquery } from '../db';
 import { paging } from '../utils/pagination';
 import { RuleSchema } from '../utils/validation';
@@ -9,6 +11,7 @@ const router = Router();
 /**
  * GET /rules?active=true|false&page=1&pageSize=20
  */
+
 router.get('/', async (req, res, next) => {
   try {
     const { active } = req.query;
@@ -40,20 +43,14 @@ router.get('/', async (req, res, next) => {
  * body: { name: string, type: string, threshold: number, asset_class?: string }
  */
 
-router.post('/', async (req, res, next) => {
+router.post('/', requireRole('admin'), validateBody(RuleSchema), async (req, res, next) => {
   try {
-    const parsed = RuleSchema.safeParse(req.body);
-    if (!parsed.success) {
-      console.warn('Validation failed for creating rule', parsed.error.issues );
-      return res.status(400).json({ error: 'Invalid rule data', details: parsed.error.issues });
-    }
+    const { name, type, threshold, asset_class } = req.body;
 
     // Validate asset_class for exposure rules
-    if (parsed.data.type === 'exposure' && !parsed.data.asset_class) {
+    if (type === 'exposure' && !asset_class) {
       return res.status(400).json({ error: 'asset_class is required for exposure rules' });
     }
-
-    const { name, type, threshold, asset_class } = parsed.data;
 
     const insertQuery = `
       INSERT INTO rules (name, type, threshold, asset_class)
@@ -75,22 +72,17 @@ router.post('/', async (req, res, next) => {
  * body: { name?: string, type?: string, threshold?: number, asset_class?: string, active?: boolean }
  */
 
-router.patch('/:id', async (req, res, next) => {
+router.patch('/:id', requireRole('admin'), validateBody(RuleSchema.partial()), async (req, res, next) => {
   try {
     const { id } = req.params;
     console.log('body:', req.body);
-    const parsed = RuleSchema.partial().safeParse(req.body);
-    if (!parsed.success) {
-      console.warn('Validation failed for updating rule', parsed.error.issues);
-      return res.status(400).json({ error: 'Invalid rule data', details: parsed.error.issues });
-    }
+
+    const { name, type, threshold, asset_class, active } = req.body;
 
     // Validate asset_class for exposure rules
-    if (parsed.data.type === 'exposure' && !parsed.data.asset_class) {
+    if (type === 'exposure' && !asset_class) {
       return res.status(400).json({ error: 'asset_class is required for exposure rules' });
     }
-
-    const { name, type, threshold, asset_class, active } = parsed.data;
 
     const updateQuery = `
       UPDATE rules
@@ -101,7 +93,7 @@ router.patch('/:id', async (req, res, next) => {
 
     const updatedRule = await pquery(updateQuery, updateParams);
     if (updatedRule.rowCount === 0) {
-      return res.status(404).json({ error: 'Rule not found' });
+      return res.status(404).json({ error: 'rule not found' });
     }
 
     console.log('Updated rule', updatedRule.rows[0]);

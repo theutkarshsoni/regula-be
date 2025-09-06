@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { requireRole } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { BreachUpdateSchema } from '../utils/validation';
 import { pquery } from '../db';
 import { paging } from '../utils/pagination';
 
@@ -51,7 +54,7 @@ router.get('/', async (req, res, next) => {
  * body: { status?: string, assignee?: string, notes?: string }
  */
 
-router.patch('/:id', async (req, res, next) => {
+router.patch('/:id', requireRole('admin'), validateBody(BreachUpdateSchema), async (req, res, next) => {
   try {
     const id = Number(req.params.id);
 
@@ -77,7 +80,7 @@ router.patch('/:id', async (req, res, next) => {
     const auditRes = await pquery(
       `INSERT INTO audit_log (entity, entity_id, action, actor, details)
       VALUES ($1,$2,$3,$4,$5)`,
-      ['breach', id, 'update', 'system', JSON.stringify({ before, after })]
+      ['breach', id, 'update', req.user?.email || 'system', JSON.stringify({ before, after })]
     );
 
     await pquery(
