@@ -24,7 +24,8 @@ router.post('/register', validateBody(RegisterSchema), async (req, res, next) =>
        VALUES ($1,$2,$3,$4) RETURNING id, email, name, role`,
       [email, hash, name, role]
     );
-    res.status(201).json(newuser.rows[0]);
+    const token = jwt.sign({ identifier: newuser.rows[0].id, role: newuser.rows[0].role, email: newuser.rows[0].email }, JWT_SECRET, { expiresIn: `${TTL_HOURS}h` });
+    res.status(201).json({ token, user: newuser.rows[0] });
   } catch (e:any) {
     if (e.code === '23505') return res.status(409).json({ error: 'email already exists' });
     if (e.name === 'ZodError') return res.status(400).json({ error: e.errors.map((i:any)=>i.message).join(', ') });
